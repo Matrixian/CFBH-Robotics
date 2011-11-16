@@ -2,7 +2,8 @@
 #include "cxcore.h"
 #include "cv.h"
 #include "highgui.h"
-
+#include <iostream>
+using namespace std;
 int main(int argc, char **argv) {
 
 	// Check number of arguments.
@@ -10,7 +11,7 @@ int main(int argc, char **argv) {
 		exit(1);
 
 	IplImage *SrcImage, *WorkImage,*ComImage;
-	
+	cout << "hello";
 	// Load a gray scale picture.
 	SrcImage = cvLoadImage(argv[1], 0);
 	if (SrcImage == NULL)
