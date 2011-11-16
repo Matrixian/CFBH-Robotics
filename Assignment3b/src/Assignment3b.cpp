@@ -212,9 +212,32 @@ list<Region*>* getRegions(IplImage *img) {
  */
 void augmentImage(IplImage *img, list<Region*> *regions) {
 	list<Region*>::iterator i;
+	int index =0;
 	for(list<Region*>::iterator i = regions->begin(); i != regions->end(); ++i) {
+		CvScalar s1 = cvScalar(0.0,255*(index/10),255*(1-(index/10)),0.0);
 		Pixel centroid = (*i)->getCentroid();
 		float principleAngle = (*i)->getPrincipleAngle();
+		float calAngle = principleAngle;
+		if(calAngle > 180.0){
+			calAngle -= 180.0;
+		}
+		calAngle -=90.0;
+		CvPoint p1 = cvPoint(0,0);
+		CvPoint p2 = cvPoint(0,0);
+		if(abs(calAngle)!= 90){
+			float slope = tan(calAngle);
+			p1.x = 0;
+			p1.y = centroid.getY()-slope*centroid.getX();
+			p2.x = img->width-1;
+			p2.y =centroid.getY()+slope*centroid.getX();
+		} else {
+			p1.x = centroid.getX();
+			p1.y = 0;
+			p2.x = centroid.getX();
+			p2.y = img->height-1;
+		}
+		cvLine(img, p1, p2, s1, 1, 8, 0);
+		cvCircle(img, cvPoint(centroid.getX(),centroid.getY()), 4, s1, -1, 8, 0);
 		cout << "REGION " << (*i)->getVal() << ": " << endl;
 		cout << "Centroid: (" << centroid.getX() << ", "
 							  << centroid.getY() << ")" << endl;
