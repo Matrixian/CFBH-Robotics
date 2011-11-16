@@ -1,0 +1,74 @@
+\documentclass[letter,12pt]{article}
+
+%---------------------------------------------------------------
+\usepackage{listings} % allow to include nicely formated listings
+\usepackage{color}    % we can add color
+\usepackage{graphics}
+\usepackage{fullpage} % default article style is to greedy about margins
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{mathtools}
+\usepackage{algorithm}
+\usepackage{listings}
+%---------------------------------------------------------------
+
+\begin{document}
+
+%---------------------------------------------------------------
+\title{Homework report: Assignment III}
+\author{Cristian Gonzalez, AXXXXX\\
+Holger Rasmussen, AXXXXX\\
+Barbara Sepic, A00922104,\\
+Felix Stahlberg, A00922105
+}
+\maketitle
+
+\section{Part A}
+
+\section{Part B}
+
+\subsection{Problem Statement}
+In this assignment, the problem of object dection is addressed. This includes distinction between different objects, calculating the centroids and principle angles of the distinct objects and visualizing them in the input image. This is crucial for higher level tasks as grapping the objects with the ER7 arm.
+
+\subsection{Definitions}
+Our program takes the path of an image as argument. We refer to it as {\em target image} $I$ and describe it mathematically as $h\times w$-matrix containing grayscale values. A {\em region} $R$ is a set of pixels of the image (i.e.\ $I\subseteq \{(x,y)\in {\mathbb{N}_+}^2| x \leq w \land y\leq h\}$). According to the lecture, the {\em moments} of a region $R$ are
+\begin{equation*}
+m_{kj} := \sum_{(x,y)\in R} x^ky^j
+\end{equation*}
+and the {\em central moments} are
+\begin{equation*}
+\mu_{kj} := \sum_{(x,y)\in R} {(x-x_c)}^k{(y-y_c)}^j
+\end{equation*}
+where $k,j\in \mathbb{N}_0$ and $(x_c, y_c)$ denotes the centroid of region $R$.
+
+\subsection{Preliminary Considerations}
+Suppose there are $n$ objects in the target image. Our implementation conceptually can be divided into three substeps. The first step fetches the following data from the image.
+
+\begin{itemize}
+\item The regions $R = \{R_1, R_2,\ldots, R_n\}$ corresponding to the $n$ objects in the image.
+\item The moments $m_{00}$, $m_{10}$ and $m_{01}$ for each region.
+\item The central moments $\mu_{11}$, $\mu_{20}$ and $\mu_{02}$ for each region.
+\end{itemize}
+
+The second step interprets these figures for each region semantically.
+
+\begin{itemize}
+\item The moment $m_{00}$ is the number of pixels in the region. We drop regions which are too small -- i.e.\ $m_{00}$ is smaller than a certain threshold $\mathtt{MIN\_REGION\_SIZE}$.
+\item The centroid $(x_c,y_c)$ is calculated using the fetched moments [citation needed].
+\begin{equation*}
+(x_c,y_c) = (\frac{m_{10}}{m_{00}},\frac{m_{01}}{m_{00}})
+\end{equation*}
+\item The principal angle of the region is [citation needed]
+\begin{equation*}
+\phi = \frac{1}{2}\cdot \text{arctan2}(2\mu_{11},\mu_{20}-\mu_{02})
+\end{equation*}
+\end{itemize}
+
+The third step augments the target image with the gained data -- i.e.\ draws a line for each region passing the centroid with the principal angle.
+
+Note that these steps are for illustration purpose only. On implementation level we do not reproduce these steps exactly since they contain backward dependencies (for example we need the centroids from the second step to calculate the central moments) and leave space for performance optimization (for example the regions and the corresponding moments can be build simultaneously).
+
+\subsection{Implementation Level}
+\end{document}
