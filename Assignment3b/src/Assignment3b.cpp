@@ -217,9 +217,11 @@ list<Region*>* getRegions(IplImage *img) {
  */
 void augmentImage(IplImage *img, list<Region*> *regions) {
 	list<Region*>::iterator i;
-	int index =0;
+	float index =0.0;
 	for (i = regions->begin(); i != regions->end(); ++i) {
-		CvScalar s1 = cvScalar(0.0,(index/10.0),255*(1.0-(index/10.0)),0.0);
+		CvScalar s1 = cvScalar(150*(index/regions->size()),255*(index/regions->size()),255*(1.0-(index/regions->size())),0.0);
+		cout << s1.val[0]<<","<<s1.val[1]<<","<<s1.val[2]<<","<<s1.val[3]<<","<<regions->size()<<","<<index<<endl;
+		index++;
 		Pixel centroid = (*i)->getCentroid();
 		float principleAngle = (*i)->getPrincipleAngle();
 		cout << "REGION " << ((int) (*i)->getVal()) << ": " << endl;
@@ -238,10 +240,10 @@ void augmentImage(IplImage *img, list<Region*> *regions) {
 	      p1.x = 0;
 	      int y = centroid.getY() - slope * centroid.getX();
 	      p1.y=y;
-	      /*if(p1.y >= img->height){
+	      if(p1.y >= img->height){
 			  p1.y=img->height;
 			  int x=(p1.y-y)/slope;
-	      }*/
+	      }
 	      p2.x = img->width - 1;
 	      p2.y = centroid.getY() + slope * centroid.getX();
 
@@ -267,16 +269,17 @@ int main(int argc, char **argv) {
 		exit(1);
 
 	IplImage *srcImage, *workImage, *comImage;
-
+	IplImage *resultImage;
 	// Load a gray scale picture.
 	srcImage = cvLoadImage(argv[1], 0);
+
 	if (srcImage == NULL)
 		exit(1);
 
 	// Create windows for debug.
 	cvNamedWindow("SrcImage", CV_WINDOW_AUTOSIZE);
 	cvNamedWindow("WorkImage", CV_WINDOW_AUTOSIZE);
-
+	cvNamedWindow("ResultImage", CV_WINDOW_AUTOSIZE);
 	// Duplicate the source image.
 	workImage = cvCloneImage(srcImage);
 
@@ -293,14 +296,16 @@ int main(int argc, char **argv) {
 
 	// Find regions, augment picture
 	list<Region*> *regions = getRegions(workImage);
-	augmentImage(srcImage, regions);
+	resultImage=cvCreateImage(cvGetSize(srcImage), 8, 3);
+	cvCvtColor(srcImage,resultImage,CV_GRAY2BGR);
+	augmentImage(resultImage, regions);
 	delete regions;
 
 	// Show images after preprocessing.
 	cvShowImage("SrcImage", srcImage);
 	cvShowImage("Preprocessed Image", comImage);
 	cvShowImage("Regions", workImage);
-
+	cvShowImage("ResultImage", resultImage);
 	cvWaitKey(-1);
 	return 0;
 }
