@@ -10,7 +10,7 @@
 #include <cv.h>
 #include <highgui.h>
 
-#define MIN_REGION_SIZE 50
+#define MIN_REGION_SIZE 500
 #define MAX_REGION_COUNT 254
 #define DEBUG 1
 
@@ -161,7 +161,7 @@ list<Region*>* getRegions(IplImage *img) {
 	 * color and thread it as new region (use FloodFill). If its black, continue.
 	 * If its in between, assign this pixel to a existing region.
 	 */
-	Region* regions[MAX_REGION_COUNT];
+	Region* regions[MAX_REGION_COUNT + 1];
 	unsigned char curColor = MAX_REGION_COUNT;
 	const int nPixels = img->height * img->width;
 	const int width = img->width;
@@ -171,19 +171,31 @@ list<Region*>* getRegions(IplImage *img) {
 		if (val == 0) { // Skip black pixels
 			continue;
 		}
-		int x = i / width;
-		int y = i % width;
+		int x = i % width;
+		int y = i / width;
 		if (val == 255) { // Color new region
-			if (DEBUG) {
-				cout << "New color region at (" << x << ", " << y << ")" << endl;
-			}
 			if (curColor == 0) {
 				throw invalid_argument("There are more than 254 regions.");
 			}
+			const CvPoint seed = cvPoint(x, y);
+			CvConnectedComp *comp = new CvConnectedComp();
+			cvFloodFill(img, seed, cvScalarAll(curColor),
+						nullScalar, nullScalar, comp, 4, NULL);
+			if (comp->area < MIN_REGION_SIZE) { // Discard
+				if (DEBUG) {
+					cout << "Discard region at " << x << "," << y << endl;
+				}
+				cvFloodFill(img, cvPoint(x, y), nullScalar, // Color black
+							nullScalar, nullScalar, NULL, 4, NULL);
+				delete comp;
+				continue;
+			}
 			val = curColor--;
 			Region *region = new Region(val);
-			cvFloodFill(img, cvPoint(x, y), cvScalar(val),
-						nullScalar, nullScalar, NULL, 4, NULL);
+			if (DEBUG) {
+				cout << "New region " << ((int) val) << " seeded at ("
+					 << x << "," << y << ")" << endl;
+			}
 			regions[MAX_REGION_COUNT - val] = region;
 		}
 		regions[MAX_REGION_COUNT - val]->addPixel(x,y);
@@ -191,16 +203,8 @@ list<Region*>* getRegions(IplImage *img) {
 	// Drop small regions, build linked list of regions
 	list<Region*> *result = new list<Region*>();
 	for (int i = 0; i < MAX_REGION_COUNT - curColor; i++) {
-		if (regions[i]->getSize() < MIN_REGION_SIZE) {
-			if (DEBUG) {
-				cout << "Discard region " << regions[i]->getVal()
-					 << " (too small)" << endl;
-			}
-			delete regions[i];
-		} else {
-			regions[i]->getPrincipleAngle(); // Space efficiency
-			result->push_back(regions[i]);
-		}
+		regions[i]->getPrincipleAngle(); // Space efficiency
+		result->push_back(regions[i]);
 	}
 	return result;
 }
@@ -212,36 +216,35 @@ list<Region*>* getRegions(IplImage *img) {
  */
 void augmentImage(IplImage *img, list<Region*> *regions) {
 	list<Region*>::iterator i;
-	int index =0;
-	for(list<Region*>::iterator i = regions->begin(); i != regions->end(); ++i) {
-		CvScalar s1 = cvScalar(0.0,255*(index/10),255*(1-(index/10)),0.0);
+	for (i = regions->begin(); i != regions->end(); ++i) {
 		Pixel centroid = (*i)->getCentroid();
 		float principleAngle = (*i)->getPrincipleAngle();
-		float calAngle = principleAngle;
-		if(calAngle > 180.0){
-			calAngle -= 180.0;
-		}
-		calAngle -=90.0;
-		CvPoint p1 = cvPoint(0,0);
-		CvPoint p2 = cvPoint(0,0);
-		if(abs(calAngle)!= 90){
-			float slope = tan(calAngle);
-			p1.x = 0;
-			p1.y = centroid.getY()-slope*centroid.getX();
-			p2.x = img->width-1;
-			p2.y =centroid.getY()+slope*centroid.getX();
-		} else {
-			p1.x = centroid.getX();
-			p1.y = 0;
-			p2.x = centroid.getX();
-			p2.y = img->height-1;
-		}
-		cvLine(img, p1, p2, s1, 1, 8, 0);
-		cvCircle(img, cvPoint(centroid.getX(),centroid.getY()), 4, s1, -1, 8, 0);
-		cout << "REGION " << (*i)->getVal() << ": " << endl;
-		cout << "Centroid: (" << centroid.getX() << ", "
+		cout << "REGION " << ((int) (*i)->getVal()) << ": " << endl;
+		cout << "Centroid: (" << centroid.getX() << ","
 							  << centroid.getY() << ")" << endl;
 		cout << "Principle Angle: " << principleAngle << endl;
+	    float calAngle = principleAngle;
+	    if(calAngle > 180.0){
+	      calAngle -= 180.0;
+	    }
+	    calAngle -= 90.0;
+	    CvPoint p1 = cvPoint(0, 0);
+	    CvPoint p2 = cvPoint(0, 0);
+	    if(abs(calAngle) != 90){
+	      float slope = tan(calAngle);
+	      p1.x = 0;
+	      p1.y = centroid.getY() - slope * centroid.getX();
+	      p2.x = img->width - 1;
+	      p2.y = centroid.getY() + slope * centroid.getX();
+	    } else {
+	      p1.x = centroid.getX();
+	      p1.y = 0;
+	      p2.x = centroid.getX();
+	      p2.y = img->height - 1;
+	    }
+	    cvLine(img, p1, p2, s1, 1, 8, 0);
+	    cvCircle(img, cvPoint(centroid.getX(), centroid.getY()),
+	    		 4, s1, -1, 8, 0);
 	}
 }
 
@@ -265,9 +268,6 @@ int main(int argc, char **argv) {
 	cvNamedWindow("SrcImage", CV_WINDOW_AUTOSIZE);
 	cvNamedWindow("WorkImage", CV_WINDOW_AUTOSIZE);
 
-	// Show the source image.
-	cvShowImage("SrcImage", srcImage);
-
 	// Duplicate the source image.
 	workImage = cvCloneImage(srcImage);
 
@@ -287,8 +287,10 @@ int main(int argc, char **argv) {
 	augmentImage(srcImage, regions);
 	delete regions;
 
-	// Show the working image after preprocessing.
-	cvShowImage("ComImage", comImage);
+	// Show images after preprocessing.
+	cvShowImage("SrcImage", srcImage);
+	cvShowImage("Preprocessed Image", comImage);
+	cvShowImage("Regions", workImage);
 
 	cvWaitKey(-1);
 	return 0;
