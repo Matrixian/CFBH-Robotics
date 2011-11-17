@@ -3,6 +3,7 @@
 #include <string>
 #include <stack>
 #include <list>
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <stdexcept>
 
@@ -216,7 +217,9 @@ list<Region*>* getRegions(IplImage *img) {
  */
 void augmentImage(IplImage *img, list<Region*> *regions) {
 	list<Region*>::iterator i;
+	int index =0;
 	for (i = regions->begin(); i != regions->end(); ++i) {
+		CvScalar s1 = cvScalar(0.0,(index/10.0),255*(1.0-(index/10.0)),0.0);
 		Pixel centroid = (*i)->getCentroid();
 		float principleAngle = (*i)->getPrincipleAngle();
 		cout << "REGION " << ((int) (*i)->getVal()) << ": " << endl;
@@ -224,18 +227,24 @@ void augmentImage(IplImage *img, list<Region*> *regions) {
 							  << centroid.getY() << ")" << endl;
 		cout << "Principle Angle: " << principleAngle << endl;
 	    float calAngle = principleAngle;
-	    if(calAngle > 180.0){
-	      calAngle -= 180.0;
+	    if(calAngle > M_PI){
+	      calAngle -= M_PI;
 	    }
-	    calAngle -= 90.0;
+	    calAngle -= M_PI/2.0;
 	    CvPoint p1 = cvPoint(0, 0);
 	    CvPoint p2 = cvPoint(0, 0);
-	    if(abs(calAngle) != 90){
+	    if(abs(calAngle) != M_PI/2.0){
 	      float slope = tan(calAngle);
 	      p1.x = 0;
-	      p1.y = centroid.getY() - slope * centroid.getX();
+	      int y = centroid.getY() - slope * centroid.getX();
+	      p1.y=y;
+	      /*if(p1.y >= img->height){
+			  p1.y=img->height;
+			  int x=(p1.y-y)/slope;
+	      }*/
 	      p2.x = img->width - 1;
 	      p2.y = centroid.getY() + slope * centroid.getX();
+
 	    } else {
 	      p1.x = centroid.getX();
 	      p1.y = 0;
