@@ -220,7 +220,8 @@ void augmentImage(IplImage *img, list<Region*> *regions) {
 	float index =0.0;
 	for (i = regions->begin(); i != regions->end(); ++i) {
 		CvScalar s1 = cvScalar(150*(index/regions->size()),255*(index/regions->size()),255*(1.0-(index/regions->size())),0.0);
-		cout << s1.val[0]<<","<<s1.val[1]<<","<<s1.val[2]<<","<<s1.val[3]<<","<<regions->size()<<","<<index<<endl;
+		cout << "Image origin " << img->origin << endl;
+		cout << "Image height and width " << img->height <<","<<img->width<< endl;
 		index++;
 		Pixel centroid = (*i)->getCentroid();
 		float principleAngle = (*i)->getPrincipleAngle();
@@ -232,27 +233,30 @@ void augmentImage(IplImage *img, list<Region*> *regions) {
 	    if(calAngle > M_PI){
 	      calAngle -= M_PI;
 	    }
-	    calAngle -= M_PI/2.0;
+	    //calAngle -= M_PI/2.0;
 	    CvPoint p1 = cvPoint(0, 0);
 	    CvPoint p2 = cvPoint(0, 0);
+	    float slope;
 	    if(abs(calAngle) != M_PI/2.0){
-	      float slope = tan(calAngle);
+	      slope = tan(calAngle);
 	      p1.x = 0;
-	      int y = centroid.getY() - slope * centroid.getX();
-	      p1.y=y;
-	      if(p1.y >= img->height){
-			  p1.y=img->height;
+	      p1.y = centroid.getY() + slope * centroid.getX();
+	      /*if(p1.y >= img->height){
+			  //p1.y=img->height;
 			  int x=(p1.y-y)/slope;
-	      }
-	      p2.x = img->width - 1;
-	      p2.y = centroid.getY() + slope * centroid.getX();
+	      }*/
+	      p2.x = img->width;
+	      p2.y = centroid.getY() - slope * (img->width-centroid.getX());
 
 	    } else {
 	      p1.x = centroid.getX();
 	      p1.y = 0;
 	      p2.x = centroid.getX();
-	      p2.y = img->height - 1;
+	      p2.y = img->height;
 	    }
+	    cout << "Point 1 " << p1.x <<","<<p1.y<< endl;
+	    cout << "Point 2 " << p2.x <<","<<p2.y<< endl;
+	    cout << "Slope " << slope<< endl;
 	    cvLine(img, p1, p2, s1, 1, 8, 0);
 	    cvCircle(img, cvPoint(centroid.getX(), centroid.getY()),
 	    		 4, s1, -1, 8, 0);
