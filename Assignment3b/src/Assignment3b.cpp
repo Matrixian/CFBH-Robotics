@@ -233,11 +233,11 @@ void augmentImage(IplImage *img, list<Region*> *regions) {
 	    if(calAngle > M_PI){
 	      calAngle -= M_PI;
 	    }
-	    //calAngle -= M_PI/2.0;
+	    calAngle -= M_PI/2.0;
 	    CvPoint p1 = cvPoint(0, 0);
 	    CvPoint p2 = cvPoint(0, 0);
-	    float slope;
-	    if(abs(calAngle) != M_PI/2.0){
+	    float slope=0.0;
+	    if(abs(principleAngle) >0.009){
 	      slope = tan(calAngle);
 	      p1.x = 0;
 	      p1.y = centroid.getY() + slope * centroid.getX();
