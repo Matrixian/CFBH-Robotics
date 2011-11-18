@@ -84,17 +84,17 @@ public:
 		if (pixels.empty()) {
 			return principleAngle;
 		}
-		const unsigned int xCenter = xSum / size, yCenter = ySum / size;
-		unsigned int aTan1 = 0, aTan2 = 0; // both elements of atan2
+		const int xCenter = xSum / size, yCenter = ySum / size;
+		int aTan1 = 0, aTan2 = 0; // both elements of atan2
 		while (!pixels.empty()) {
 			Pixel pixel = pixels.top();
-			unsigned int xDiff = pixel.getX() - xCenter;
-			unsigned int yDiff = pixel.getY() - yCenter;
+			int xDiff = pixel.getX() - xCenter;
+			int yDiff = pixel.getY() - yCenter;
 			aTan1 += xDiff * yDiff;
-			aTan2 += xDiff * xDiff - yDiff * yDiff;
+			aTan2 += yDiff * yDiff - xDiff * xDiff;
 			pixels.pop();
 		}
-		principleAngle = atan2((float) 2 * aTan1, (float) aTan2) / 2.0;
+		principleAngle = atan2((float) aTan1 * 2, (float) aTan2) / 2.0;
 		return principleAngle;
 	}
 
@@ -217,34 +217,37 @@ list<Region*>* getRegions(IplImage *img) {
  */
 void augmentImage(IplImage *img, list<Region*> *regions) {
 	list<Region*>::iterator i;
-	float index =0.0;
+	float index = 0.0;
+	const unsigned int regionSize = regions->size();
 	for (i = regions->begin(); i != regions->end(); ++i) {
-		CvScalar s1 = cvScalar(150*(index/regions->size()),255*(index/regions->size()),255*(1.0-(index/regions->size())),0.0);
-		cout << "Image origin " << img->origin << endl;
-		cout << "Image height and width " << img->height <<","<<img->width<< endl;
-		index++;
+		const CvScalar s1 = cvScalar(
+				150 * index / regionSize,
+				255 * index / regionSize,
+				255 * (1.0 - index / regionSize), 0.0);
+		const float principleAngle = (*i)->getPrincipleAngle();
 		Pixel centroid = (*i)->getCentroid();
-		float principleAngle = (*i)->getPrincipleAngle();
+		index++;
+
+		// Text output
 		cout << "REGION " << ((int) (*i)->getVal()) << ": " << endl;
 		cout << "Centroid: (" << centroid.getX() << ","
 							  << centroid.getY() << ")" << endl;
-		cout << "Principle Angle: " << principleAngle << endl;
-	    float calAngle = principleAngle;
+		cout << "Principle Angle: " << principleAngle << " ("
+				<< (360 * principleAngle / M_2_PI) << " degree)" << endl;
+
+		// Calculate anchor points for drawing the principle angle
+		float calAngle = principleAngle;
 	    if(calAngle > M_PI){
 	      calAngle -= M_PI;
 	    }
 	    calAngle -= M_PI/2.0;
 	    CvPoint p1 = cvPoint(0, 0);
 	    CvPoint p2 = cvPoint(0, 0);
-	    float slope=0.0;
+	    float slope = 0.0;
 	    if(abs(principleAngle) >0.009){
 	      slope = tan(calAngle);
 	      p1.x = 0;
 	      p1.y = centroid.getY() + slope * centroid.getX();
-	      /*if(p1.y >= img->height){
-			  //p1.y=img->height;
-			  int x=(p1.y-y)/slope;
-	      }*/
 	      p2.x = img->width;
 	      p2.y = centroid.getY() - slope * (img->width-centroid.getX());
 
@@ -254,9 +257,11 @@ void augmentImage(IplImage *img, list<Region*> *regions) {
 	      p2.x = centroid.getX();
 	      p2.y = img->height;
 	    }
-	    cout << "Point 1 " << p1.x <<","<<p1.y<< endl;
-	    cout << "Point 2 " << p2.x <<","<<p2.y<< endl;
-	    cout << "Slope " << slope<< endl;
+	    if (DEBUG) {
+			cout << "Point 1 " << p1.x <<","<<p1.y<< endl;
+			cout << "Point 2 " << p2.x <<","<<p2.y<< endl;
+			cout << "Slope " << slope << endl;
+	    }
 	    cvLine(img, p1, p2, s1, 1, 8, 0);
 	    cvCircle(img, cvPoint(centroid.getX(), centroid.getY()),
 	    		 4, s1, -1, 8, 0);
@@ -267,13 +272,13 @@ void augmentImage(IplImage *img, list<Region*> *regions) {
  * Main runner method.
  */
 int main(int argc, char **argv) {
-
 	// Check number of arguments.
-	if ( argc != 2 )
+	if ( argc != 2 ) {
 		exit(1);
+	}
 
-	IplImage *srcImage, *workImage, *comImage;
-	IplImage *resultImage;
+	IplImage *srcImage, *workImage, *resultImage;
+
 	// Load a gray scale picture.
 	srcImage = cvLoadImage(argv[1], 0);
 
@@ -281,22 +286,18 @@ int main(int argc, char **argv) {
 		exit(1);
 
 	// Create windows for debug.
-	cvNamedWindow("SrcImage", CV_WINDOW_AUTOSIZE);
-	cvNamedWindow("WorkImage", CV_WINDOW_AUTOSIZE);
+	cvNamedWindow("Regions", CV_WINDOW_AUTOSIZE);
 	cvNamedWindow("ResultImage", CV_WINDOW_AUTOSIZE);
+
 	// Duplicate the source image.
 	workImage = cvCloneImage(srcImage);
 
-	/* If you're familiar with OpenCV, cvFindContours() will be a better way.*/
 	cvSmooth(workImage, workImage);
 	cvThreshold(workImage, workImage, 128, 255, CV_THRESH_BINARY);
 
 	// Opening
 	cvErode(workImage, workImage);
 	cvDilate(workImage, workImage);
-
-	// Duplicate the working image.
-	comImage = cvCloneImage(workImage);
 
 	// Find regions, augment picture
 	list<Region*> *regions = getRegions(workImage);
@@ -305,12 +306,9 @@ int main(int argc, char **argv) {
 	augmentImage(resultImage, regions);
 	delete regions;
 
-	// Show images after preprocessing.
-	cvShowImage("SrcImage", srcImage);
-	cvShowImage("Preprocessed Image", comImage);
+	// Show images
 	cvShowImage("Regions", workImage);
 	cvShowImage("ResultImage", resultImage);
 	cvWaitKey(-1);
 	return 0;
 }
-
