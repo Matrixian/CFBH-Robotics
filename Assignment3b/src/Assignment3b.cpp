@@ -240,7 +240,8 @@ void augmentImage(IplImage *img, list<Region*> *regions) {
 	    if(calAngle > M_PI){
 	      calAngle -= M_PI;
 	    }
-	    calAngle -= M_PI/2.0;
+	    // Increase the angle by 90 degrees. This is the actual slope of the straight line.
+	    calAngle += M_PI/2.0;
 	    CvPoint p1 = cvPoint(0, 0);
 	    CvPoint p2 = cvPoint(0, 0);
 	    float slope = 0.0;
