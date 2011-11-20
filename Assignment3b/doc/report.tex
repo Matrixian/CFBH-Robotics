@@ -26,10 +26,61 @@ Felix Stahlberg, A00922105
 \maketitle
 \section{Introduction}
 This report describes the design rationale, process, experimental results of the Camera Calibration (A) and the Object Detection (B) programs.   As to the work distribution, Barbara and Cristian were responsible for part A.  Felix and Holger are responsible for part B.  
-\section{Part A}
+\section{Part A (Camera Calibration)}
+\subsection{Problem Statement and Used Resources}
+The goal of this assigment is to get familiar the camear model and the meaning of the camera parameters.  In order to achieve this, it was our task to execute a camera calibration and explain the results.  Especially the intrinsic and extrinsic parameters are of interest. 
 
-\section{Part B}
+Resources needed for this task are a camera, a printed out checkerboard and the OpenCV library.  The camera used in the calibration is the a 5 megapixel color camera with auto focus and power LED flash ("HTC desire S" camera).  The dimensions of the checkerboard is as follows:
+\begin{itemize}
+	\item Board width: 8 squares
+	\item Board height: 6 Squares
+	\item Square size: 2.5 cm * 2.5 cm
+\end{itemize}
 
+For the experiment, 20 images of the checkboard were taken with the specified camera.  Each image was taken at a different angle.  The images and the dimensions of the checkerboard serve as the input for the camera calibration.
+\subsection{result}
+As a result of the camera calibration, we calculated the following intrinsic parameters, which are displayed in a 3x3 matrix:
+
+\begin{center}
+$\begin{bmatrix} [ 2.9072828604088395e+03 & 0& 1.3553413676263517e+03\\ 0 & 2.8931612870671734e+03 & 4.7380351999214878e+02\\0 & 0 &1 \end{bmatrix}$
+\end{center}
+In order to explain this matrix, the individual parameters are explained as follows:
+
+\begin{itemize}
+\item $\gamma = 0$, which means there is no skew between the x-axis and the y-axis
+\item $\mu_0 = 1.3553413676263517e+03$, $\nu_0 = 4.7380351999214878e+02$ which are the principal points of the camera, which means the point of where the distortions might start occuring
+\item $\alpha_x = 2.9072828604088395e+03$, $\alpha_y= 2.8931612870671734e+03$
+both $\alpha_x$ and $\alpha_y$ give a clue to what the focal length is for x and y direction respectively. Focal length is usually multiplied by the pixel length of x and y direction respectively. So it means with these two numbers, we have a good idea how far the objects really are from the image in 2D space.
+\end{itemize}
+
+According to the program, the following is the matrix for the distortion:
+
+\begin{center}
+$\begin{bmatrix} [$1.9827021688267019e-01$ & $-6.0612987498128668e-01$& $-2.6589049569987616e-02$&$ 8.2291961184871847e-03$ \end{bmatrix}$
+\end{center}
+Some of the images look almost the same from before the calibration and after the calibration.  One example are the following before and after images:
+
+\begin{figure}[h]
+\begin{center}$
+\begin{array}{cc}
+\includegraphics[scale=0.08]{image1.jpg} &
+\includegraphics[scale=0.08]{image2.jpg} 
+\end{array}$
+\end{center}
+\caption{The left image is the raw image of the camera.  The right image shows the image after calibration}
+\end{figure}
+
+Other pictures are not so nice looking, as the next set of images show.  Some of the reasons for the distortion of the images is because there might be some sort of error in the alignment of the lens or in the distortion of the lens of a camera. It could also be because of the image might be close to the principal point, since the closer the object is from the principal point is, the more noticeable the distortions of an image are noticed, at least based on our observation of the images. 
+\begin{figure}[h]
+\begin{center}$
+\begin{array}{cc}
+\includegraphics[scale=0.08]{image3.jpg} &
+\includegraphics[scale=0.08]{image4.jpg} 
+\end{array}$
+\end{center}
+\caption{The left image is the raw image of the camera.  The right image is the distortet image}
+\end{figure}
+\section{Part B (Object Detection)}
 \subsection{Problem Statement}
 In this assignment, the problem of object dection is addressed. This includes distinction between different objects, calculating the centroids and principle angles of the distinct objects and visualizing them in the input image. This is crucial for higher level tasks as grapping the objects with the ER7 arm.
 
